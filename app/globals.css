@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -13,9 +13,9 @@ html {
 body {
   @apply bg-ink text-white antialiased;
   background-image:
-    radial-gradient(circle at top left, rgba(126, 200, 255, 0.16), transparent 30%),
-    radial-gradient(circle at top right, rgba(26, 110, 232, 0.18), transparent 25%),
-    linear-gradient(180deg, #06111f 0%, #081524 55%, #f5f7fb 55%, #f5f7fb 100%);
+    radial-gradient(circle at 0% 0%, rgba(126, 200, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 100% 0%, rgba(26, 110, 232, 0.16), transparent 24%),
+    linear-gradient(180deg, #06111f 0%, #081523 38%, #0a1625 56%, #f5f7fb 56%, #f5f7fb 100%);
 }
 
 ::selection {
@@ -23,17 +23,23 @@ body {
 }
 
 .panel {
-  @apply rounded-[28px] border border-line bg-white/5 backdrop-blur-xl;
+  @apply rounded-[30px] border border-line bg-white/[0.045] backdrop-blur-xl;
+  box-shadow: 0 28px 80px rgba(3, 10, 18, 0.28);
 }
 
 .light-panel {
-  @apply rounded-[28px] border border-slate-200 bg-white text-slate-900 shadow-panel;
+  @apply rounded-[30px] border border-slate-200 bg-white text-slate-900;
+  box-shadow: 0 24px 64px rgba(7, 18, 31, 0.08);
 }
 
 .section-shell {
-  @apply mx-auto max-w-7xl px-6 sm:px-8 lg:px-10;
+  @apply mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-10;
 }
 
 .text-balance {
   text-wrap: balance;
+}
+
+.glass-divider {
+  border-color: rgba(255, 255, 255, 0.1);
 }
