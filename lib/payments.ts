@@ -3,7 +3,7 @@ import { levels } from "@/lib/content";
 export const PAYMENT_LINKS = {
   "problem-solving": "https://rzp.io/rzp/5gST3mf",
   "decision-frameworks": "https://rzp.io/rzp/xasmIQSh",
-  "case-studies": "https://rzp.io/rzp/9IyoITI8"
+  "case-studies": "https://rzp.io/rzp/9IyoITl8"
 } as const;
 
 export const paidLevelConfig = {
@@ -20,7 +20,7 @@ export const paidLevelConfig = {
   "case-studies": {
     title: levels.find((level) => level.id === "case-studies")?.title ?? "Level 4",
     paymentLink: PAYMENT_LINKS["case-studies"],
-    linkIds: ["9IyoITI8"] as string[]
+    linkIds: ["9IyoITl8"] as string[]
   }
 } as const;
 
