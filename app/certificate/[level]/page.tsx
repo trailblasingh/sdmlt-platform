@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
 import { PrintCertificateButton } from "@/components/print-certificate-button";
 import { getCurrentUser } from "@/lib/auth";
 import { levels } from "@/lib/content";
@@ -53,7 +54,10 @@ export default async function CertificatePage({ params }: { params: Promise<{ le
   return (
     <div className="section-shell py-16 pb-24 print:py-0">
       <div className="mx-auto max-w-5xl rounded-[36px] border border-white/10 bg-[#081321] p-8 text-white shadow-glow print:border-none print:bg-white print:text-slate-950 print:shadow-none sm:p-12">
-        <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
+        <div className="flex justify-center print:mb-6">
+          <BrandLogo showText={false} imageClassName="border border-white/10" />
+        </div>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 print:hidden">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-accent">Certificate</p>
             <h1 className="mt-3 font-display text-4xl">Certificate of Completion</h1>

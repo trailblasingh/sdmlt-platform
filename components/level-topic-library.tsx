@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { BookOpenText, ChevronDown, Lock, Sparkles } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import type { LessonTopic } from "@/lib/content";
 import { QuizInterface } from "@/components/quiz-interface";
 import { TopicCompleteButton } from "@/components/topic-complete-button";
@@ -104,7 +105,10 @@ export function LevelTopicLibrary({ levelSlug, lessons, unlocked, completedTopic
                   {!isUnlocked ? (
                     <div className="absolute inset-0 flex items-center justify-center rounded-[24px] bg-slate-950/30 p-4">
                       <div className="max-w-md rounded-[24px] border border-white/10 bg-[#081321] p-6 text-center text-white shadow-xl">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-accent">
+                        <div className="mx-auto flex justify-center">
+                          <BrandLogo compact showText={false} imageClassName="border border-white/10" />
+                        </div>
+                        <div className="mx-auto mt-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-accent">
                           <Lock className="h-5 w-5" />
                         </div>
                         <h4 className="mt-4 font-display text-2xl">Unlock this level to access content and questions</h4>

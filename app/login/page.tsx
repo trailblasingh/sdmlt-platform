@@ -1,5 +1,6 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 import { GoogleLoginButton } from "@/components/auth/google-login-button";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -20,7 +21,8 @@ export default async function LoginPage({
     <div className="section-shell py-16 pb-24">
       <div className="mx-auto max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-[#081321] shadow-glow lg:grid lg:grid-cols-[0.9fr_1.1fr]">
         <div className="border-b border-white/10 bg-gradient-to-br from-accent/10 via-transparent to-transparent p-8 lg:border-b-0 lg:border-r">
-          <p className="text-xs uppercase tracking-[0.3em] text-accent">Member Access</p>
+          <BrandLogo imageClassName="border border-white/10" />
+          <p className="mt-8 text-xs uppercase tracking-[0.3em] text-accent">Member Access</p>
           <h1 className="mt-4 font-display text-4xl text-white">Continue your decision thinking practice</h1>
           <p className="mt-4 text-base leading-7 text-slate-300">
             Sign in to unlock paid levels, save topic progress, access your dashboard, and generate certificates as you complete each stage.

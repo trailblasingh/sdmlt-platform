@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AuthButton } from "@/components/auth/auth-button";
 import { useAuth } from "@/components/auth/auth-provider";
+import { BrandLogo } from "@/components/brand-logo";
 
 const nav = [
   { href: "/levels", label: "Levels" },
@@ -21,13 +22,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-30 border-b border-white/8 bg-ink/70 backdrop-blur-2xl">
       <div className="section-shell flex h-20 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-sm font-semibold tracking-[0.18em] text-accent">
-            SD
-          </div>
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.32em] text-brand-slate">SDMLT</p>
-            <p className="text-sm text-white/75">School of Decision Thinking</p>
-          </div>
+          <BrandLogo compact imageClassName="border border-white/10" />
         </Link>
         <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] p-1.5 md:flex">
           {links.map((item) => (

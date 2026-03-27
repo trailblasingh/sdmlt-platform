@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Award, CheckCircle2, Lock } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { getCurrentUser } from "@/lib/auth";
 import { levels } from "@/lib/content";
 import { getCompletedTopicsForLevel, getCompletionRatio, getLearningStateForUser, isLevelUnlocked } from "@/lib/member-data";
@@ -31,7 +32,8 @@ export default async function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-6">
           <div className="panel p-8">
-            <p className="text-xs uppercase tracking-[0.3em] text-accent">Dashboard</p>
+            <BrandLogo imageClassName="border border-white/10" />
+            <p className="mt-8 text-xs uppercase tracking-[0.3em] text-accent">Dashboard</p>
             <h1 className="mt-4 font-display text-4xl text-white">Welcome back, {(user.user_metadata.full_name as string | undefined) ?? user.email?.split("@")[0] ?? "Learner"}</h1>
             <p className="mt-3 max-w-xl text-base leading-7 text-slate-300">
               Track purchased levels, continue from your saved topic progress, and generate certificates as you complete each stage of the platform.
