@@ -1,10 +1,9 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Award, CheckCircle2, Lock } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { levels } from "@/lib/content";
 import { getCompletedTopicsForLevel, getCompletionRatio, getLearningStateForUser, isLevelUnlocked } from "@/lib/member-data";
-import { getLevelCodeFromSlug } from "@/lib/payments";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -14,7 +13,7 @@ export default async function DashboardPage() {
   }
 
   const learningState = await getLearningStateForUser(user.id);
-  const purchasedLevelCodes = learningState.purchases.map((purchase) => purchase.level);
+  const purchasedLevels = learningState.purchases.map((purchase) => purchase.level);
   const earnedCertificates = new Set(learningState.certificates.map((certificate) => certificate.level));
 
   const stats = [
@@ -63,9 +62,8 @@ export default async function DashboardPage() {
             {levels.map((level) => {
               const completedTopics = getCompletedTopicsForLevel(level.id, learningState.progress);
               const completionRatio = getCompletionRatio(level.id, completedTopics);
-              const unlocked = isLevelUnlocked(level.id, purchasedLevelCodes);
-              const levelCode = getLevelCodeFromSlug(level.id);
-              const hasCertificate = earnedCertificates.has(levelCode);
+              const unlocked = isLevelUnlocked(level.id, purchasedLevels);
+              const hasCertificate = earnedCertificates.has(level.id);
 
               return (
                 <div key={level.id} className="rounded-[24px] border border-slate-200 p-5">
@@ -86,11 +84,18 @@ export default async function DashboardPage() {
                       {!unlocked ? <Lock className="h-4 w-4" /> : completionRatio === 1 ? <CheckCircle2 className="h-4 w-4" /> : <Award className="h-4 w-4" />}
                       <span>{!unlocked ? "Unlock required" : `${completedTopics.length}/${level.topics.length} topics completed`}</span>
                     </div>
-                    {completionRatio === 1 ? (
-                      <Link href={`/certificate/${level.id}`} className="font-medium text-slate-950">
-                        {hasCertificate ? "View certificate" : "Generate certificate"}
-                      </Link>
-                    ) : null}
+                    <div className="flex items-center gap-4">
+                      {unlocked ? (
+                        <Link href={`/levels/${level.id}`} className="font-medium text-slate-950">
+                          Continue learning
+                        </Link>
+                      ) : null}
+                      {completionRatio === 1 ? (
+                        <Link href={`/certificate/${level.id}`} className="font-medium text-slate-950">
+                          {hasCertificate ? "View certificate" : "Generate certificate"}
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               );

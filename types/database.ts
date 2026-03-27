@@ -30,6 +30,7 @@ export type Database = {
           user_id: string;
           level: string;
           payment_id: string;
+          status: string;
           created_at: string;
         };
         Insert: {
@@ -37,6 +38,7 @@ export type Database = {
           user_id: string;
           level: string;
           payment_id: string;
+          status?: string;
           created_at?: string;
         };
         Update: {
@@ -44,6 +46,7 @@ export type Database = {
           user_id?: string;
           level?: string;
           payment_id?: string;
+          status?: string;
           created_at?: string;
         };
         Relationships: [

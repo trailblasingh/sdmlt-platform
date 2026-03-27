@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { ensureUserProfile } from "@/lib/auth";
-import { getLevelCodeFromSlug } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -26,12 +25,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Level and topic are required." }, { status: 400 });
   }
 
-  const levelCode = getLevelCodeFromSlug(level);
   const { data: existing, error: readError } = await supabase
     .from("progress")
     .select("id, completed_topics")
     .eq("user_id", user.id)
-    .eq("level", levelCode)
+    .eq("level", level)
     .maybeSingle();
 
   if (readError) {
@@ -46,7 +44,7 @@ export async function POST(request: Request) {
     {
       id: existing?.id,
       user_id: user.id,
-      level: levelCode,
+      level,
       completed_topics: completedTopics
     },
     { onConflict: "user_id,level" }

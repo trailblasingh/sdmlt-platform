@@ -1,4 +1,4 @@
-﻿create extension if not exists "pgcrypto";
+create extension if not exists "pgcrypto";
 
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -10,8 +10,9 @@ create table if not exists public.users (
 create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
-  level text not null check (level in ('level2', 'level3', 'level4')),
-  payment_id text not null,
+  level text not null check (level in ('problem-solving', 'decision-frameworks', 'case-studies')),
+  payment_id text not null unique,
+  status text not null default 'paid' check (status in ('paid')),
   created_at timestamptz not null default timezone('utc', now()),
   unique(user_id, level)
 );
@@ -19,7 +20,7 @@ create table if not exists public.purchases (
 create table if not exists public.progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
-  level text not null check (level in ('level1', 'level2', 'level3', 'level4')),
+  level text not null check (level in ('foundations', 'problem-solving', 'decision-frameworks', 'case-studies')),
   completed_topics jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
@@ -29,10 +30,14 @@ create table if not exists public.progress (
 create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
-  level text not null check (level in ('level1', 'level2', 'level3', 'level4')),
+  level text not null check (level in ('foundations', 'problem-solving', 'decision-frameworks', 'case-studies')),
   issued_at timestamptz not null default timezone('utc', now()),
   unique(user_id, level)
 );
+
+alter table public.purchases add column if not exists status text not null default 'paid';
+alter table public.purchases add constraint purchases_status_check check (status in ('paid'));
+alter table public.purchases add constraint purchases_payment_id_key unique (payment_id);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -95,6 +100,9 @@ create policy "purchases_select_own" on public.purchases for select using (auth.
 drop policy if exists "purchases_insert_own" on public.purchases;
 create policy "purchases_insert_own" on public.purchases for insert with check (auth.uid() = user_id);
 
+drop policy if exists "purchases_update_own" on public.purchases;
+create policy "purchases_update_own" on public.purchases for update using (auth.uid() = user_id);
+
 drop policy if exists "progress_select_own" on public.progress;
 create policy "progress_select_own" on public.progress for select using (auth.uid() = user_id);
 
@@ -109,3 +117,6 @@ create policy "certificates_select_own" on public.certificates for select using 
 
 drop policy if exists "certificates_insert_own" on public.certificates;
 create policy "certificates_insert_own" on public.certificates for insert with check (auth.uid() = user_id);
+
+drop policy if exists "certificates_update_own" on public.certificates;
+create policy "certificates_update_own" on public.certificates for update using (auth.uid() = user_id);

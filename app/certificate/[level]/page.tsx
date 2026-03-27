@@ -3,7 +3,6 @@ import { PrintCertificateButton } from "@/components/print-certificate-button";
 import { getCurrentUser } from "@/lib/auth";
 import { levels } from "@/lib/content";
 import { getCompletedTopicsForLevel, getLearningStateForUser, isLevelUnlocked } from "@/lib/member-data";
-import { getLevelCodeFromSlug } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 
 export function generateStaticParams() {
@@ -24,25 +23,27 @@ export default async function CertificatePage({ params }: { params: Promise<{ le
   }
 
   const learningState = await getLearningStateForUser(user.id);
-  const purchasedLevelCodes = learningState.purchases.map((purchase) => purchase.level);
-  const unlocked = isLevelUnlocked(levelSlug, purchasedLevelCodes);
+  const purchasedLevels = learningState.purchases.map((purchase) => purchase.level);
+  const unlocked = isLevelUnlocked(levelSlug, purchasedLevels);
   const completedTopics = getCompletedTopicsForLevel(levelSlug, learningState.progress);
 
   if (!unlocked || completedTopics.length < level.topics.length) {
     redirect("/dashboard");
   }
 
-  const levelCode = getLevelCodeFromSlug(levelSlug);
-  const existingCertificate = learningState.certificates.find((certificate) => certificate.level === levelCode);
+  const existingCertificate = learningState.certificates.find((certificate) => certificate.level === levelSlug);
 
   if (!existingCertificate) {
     const supabase = await createClient();
 
     if (supabase) {
-      await supabase.from("certificates").insert({
-        user_id: user.id,
-        level: levelCode
-      });
+      await supabase.from("certificates").upsert(
+        {
+          user_id: user.id,
+          level: levelSlug
+        },
+        { onConflict: "user_id,level" }
+      );
     }
   }
 

@@ -1,21 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
-
-async function ensureRazorpayLoaded() {
-  if (window.Razorpay) return true;
-
-  return await new Promise<boolean>((resolve) => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
+import { getPaymentLink, isPaidLevelSlug } from "@/lib/payments";
 
 type UnlockLevelButtonProps = {
   levelSlug: string;
@@ -23,7 +11,7 @@ type UnlockLevelButtonProps = {
   onUnlocked?: () => void;
 };
 
-export function UnlockLevelButton({ levelSlug, className, onUnlocked }: UnlockLevelButtonProps) {
+export function UnlockLevelButton({ levelSlug, className }: UnlockLevelButtonProps) {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -36,7 +24,7 @@ export function UnlockLevelButton({ levelSlug, className, onUnlocked }: UnlockLe
     return () => window.clearTimeout(timeout);
   }, [message]);
 
-  async function handleClick() {
+  function handleClick() {
     setMessage(null);
 
     if (!user) {
@@ -44,89 +32,23 @@ export function UnlockLevelButton({ levelSlug, className, onUnlocked }: UnlockLe
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const orderResponse = await fetch("/api/payments/order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ level: levelSlug })
-      });
-
-      const orderData = await orderResponse.json();
-
-      if (!orderResponse.ok) {
-        throw new Error(orderData.error ?? "Unable to create payment order.");
-      }
-
-      const loaded = await ensureRazorpayLoaded();
-      if (!loaded || !window.Razorpay) {
-        throw new Error("Unable to load Razorpay checkout.");
-      }
-
-      const razorpay = new window.Razorpay({
-        key: orderData.keyId,
-        order_id: orderData.orderId,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "SDMLT",
-        description: orderData.description,
-        prefill: {
-          name: orderData.prefill.name,
-          email: orderData.prefill.email
-        },
-        theme: {
-          color: "#7EC8FF"
-        },
-        modal: {
-          ondismiss: () => setLoading(false)
-        },
-        handler: async (response: Record<string, string>) => {
-          const verifyResponse = await fetch("/api/payments/verify", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              level: levelSlug,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            })
-          });
-
-          const verifyData = await verifyResponse.json();
-
-          if (!verifyResponse.ok) {
-            setMessage(verifyData.error ?? "Payment verification failed.");
-            setLoading(false);
-            return;
-          }
-
-          setMessage("Level unlocked successfully.");
-          onUnlocked?.();
-          router.refresh();
-          setLoading(false);
-        }
-      });
-
-      razorpay.open();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to start checkout.");
-      setLoading(false);
+    if (!isPaidLevelSlug(levelSlug)) {
+      setMessage("This level does not require payment.");
+      return;
     }
+
+    setLoading(true);
+    window.location.href = getPaymentLink(levelSlug);
   }
 
   return (
     <div>
       <button
-        onClick={() => void handleClick()}
+        onClick={handleClick}
         disabled={loading}
         className={className ?? "mt-5 rounded-full bg-white px-5 py-3 text-sm font-medium text-ink transition hover:bg-mist disabled:cursor-wait disabled:opacity-80"}
       >
-        {loading ? "Processing..." : "Unlock Level"}
+        {loading ? "Redirecting..." : "Unlock Level"}
       </button>
       {message ? <p className="mt-3 text-sm text-slate-300">{message}</p> : null}
     </div>

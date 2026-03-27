@@ -6,7 +6,7 @@ import { getLearningStateForUser, isLevelUnlocked } from "@/lib/member-data";
 export default async function PaymentPage() {
   const user = await getCurrentUser();
   const learningState = user ? await getLearningStateForUser(user.id) : { purchases: [], progress: [], certificates: [] };
-  const purchasedLevelCodes = learningState.purchases.map((purchase) => purchase.level);
+  const purchasedLevels = learningState.purchases.map((purchase) => purchase.level);
   const paidLevels = levels.filter((level) => level.access === "Paid");
 
   return (
@@ -22,7 +22,7 @@ export default async function PaymentPage() {
           </div>
           <div className="space-y-4">
             {paidLevels.map((level) => {
-              const unlocked = isLevelUnlocked(level.id, purchasedLevelCodes);
+              const unlocked = isLevelUnlocked(level.id, purchasedLevels);
 
               return (
                 <div key={level.id} className="light-panel p-6">
@@ -51,8 +51,8 @@ export default async function PaymentPage() {
           <div className="mt-5 grid gap-4">
             {[
               "Login with Google to connect purchases and progress to your account.",
-              "Start a secure Razorpay checkout for the level you want to unlock.",
-              "After payment verification, the level opens instantly and your progress is stored.",
+              "Click unlock to open the correct Razorpay payment link with your email prefilled.",
+              "After payment, Razorpay should return you to /payment-success so the purchase can be recorded in Supabase.",
               "Finish every topic in a level to unlock its certificate page and print-ready certificate."
             ].map((item) => (
               <div key={item} className="rounded-[18px] border border-slate-200 px-4 py-4 text-sm leading-7 text-slate-700">
