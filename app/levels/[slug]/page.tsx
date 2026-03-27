@@ -1,7 +1,9 @@
 ﻿import { notFound } from "next/navigation";
-import { BookOpenText, ChevronDown, Lock, Sparkles } from "lucide-react";
-import { QuizInterface } from "@/components/quiz-interface";
+import { Lock } from "lucide-react";
+import { LevelTopicLibrary } from "@/components/level-topic-library";
+import { getCurrentUser } from "@/lib/auth";
 import { levelLessons, levels } from "@/lib/content";
+import { getCompletedTopicsForLevel, getLearningStateForUser, isLevelUnlocked } from "@/lib/member-data";
 
 const conceptPoints: Record<string, string[]> = {
   "Decision Sources": [
@@ -98,9 +100,14 @@ export default async function LevelDetailPage({ params }: { params: Promise<{ sl
     notFound();
   }
 
+  const user = await getCurrentUser();
   const lessons = levelLessons[level.id];
   const questionCount = lessons.reduce((total, topic) => total + topic.questions.length, 0);
-  const isLocked = level.access === "Paid";
+  const learningState = user ? await getLearningStateForUser(user.id) : { purchases: [], progress: [], certificates: [] };
+  const purchasedLevelCodes = learningState.purchases.map((purchase) => purchase.level);
+  const unlocked = isLevelUnlocked(level.id, purchasedLevelCodes);
+  const completedTopicIds = user ? getCompletedTopicsForLevel(level.id, learningState.progress) : [];
+  const completionPercent = lessons.length === 0 ? 0 : Math.round((completedTopicIds.length / lessons.length) * 100);
 
   return (
     <div className="pb-24">
@@ -122,7 +129,14 @@ export default async function LevelDetailPage({ params }: { params: Promise<{ sl
             </div>
           </div>
           <div className="panel p-6">
-            <p className="text-xs uppercase tracking-[0.28em] text-accent">Level Structure</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.28em] text-accent">Level Structure</p>
+              {!unlocked ? <Lock className="h-4 w-4 text-accent" /> : null}
+            </div>
+            <div className="mt-5 h-2 rounded-full bg-white/10">
+              <div className="h-2 rounded-full bg-gradient-to-r from-accent to-accent-deep" style={{ width: `${completionPercent}%` }} />
+            </div>
+            <p className="mt-3 text-sm text-slate-300">{completionPercent}% completed</p>
             <div className="mt-5 space-y-4">
               {lessons.map((topic, index) => (
                 <div key={topic.title} className="rounded-[22px] border border-white/10 bg-white/[0.05] p-4">
@@ -131,7 +145,7 @@ export default async function LevelDetailPage({ params }: { params: Promise<{ sl
                       <p className="text-xs uppercase tracking-[0.24em] text-brand-slate">Topic {index + 1}</p>
                       <p className="mt-2 text-lg text-white">{topic.title}</p>
                     </div>
-                    {isLocked ? <Lock className="h-4 w-4 text-accent" /> : null}
+                    {completedTopicIds.includes(topic.title) ? <span className="rounded-full bg-white px-3 py-1 text-xs text-ink">Done</span> : null}
                   </div>
                   <p className="mt-2 text-sm leading-6 text-slate-300">{topic.questions.length} questions</p>
                 </div>
@@ -142,82 +156,13 @@ export default async function LevelDetailPage({ params }: { params: Promise<{ sl
       </section>
 
       <section className="section-shell">
-        <div className="light-panel p-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-accent-deep">Topic Library</p>
-              <h2 className="mt-3 font-display text-3xl text-slate-950">Learn the concept, then solve the questions</h2>
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600">
-              <Sparkles className="h-4 w-4" />
-              {isLocked ? "Preview the structure of this level" : "Open any topic to study and practice"}
-            </div>
-          </div>
-
-          <div className="mt-8 space-y-4">
-            {lessons.map((topic) => (
-              <details key={topic.title} className="group overflow-hidden rounded-[26px] border border-slate-200 bg-slate-50/80 open:bg-white">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-5 marker:hidden">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-accent-deep">{topic.questions.length} Questions</p>
-                    <h3 className="mt-2 font-display text-2xl text-slate-950">{topic.title}</h3>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {isLocked ? <Lock className="h-4 w-4 text-slate-500" /> : null}
-                    <ChevronDown className="h-5 w-5 text-slate-500 transition group-open:rotate-180" />
-                  </div>
-                </summary>
-                <div className="border-t border-slate-200 px-5 py-5">
-                  <div className="relative">
-                    <div className={isLocked ? "pointer-events-none select-none blur-[6px]" : undefined}>
-                      <div className="rounded-[22px] border border-slate-200 bg-white p-5">
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.26em] text-accent-deep">
-                          <BookOpenText className="h-4 w-4" />
-                          Concept
-                        </div>
-                        <h4 className="mt-4 font-display text-2xl text-slate-950">{topic.title}</h4>
-                        <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-700">
-                          {(conceptPoints[topic.title] ?? [topic.summary]).map((point) => (
-                            <li key={point} className="flex gap-3">
-                              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-accent-deep" />
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="mt-5 rounded-[22px] border border-slate-200 bg-white p-5">
-                        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-accent-deep">Pause & Think</p>
-                        <p className="mt-4 text-sm leading-7 text-slate-700">{topic.pausePrompt}</p>
-                      </div>
-
-                      <div className="mt-5">
-                        <QuizInterface pausePrompt={topic.pausePrompt} questions={topic.questions} />
-                      </div>
-                    </div>
-
-                    {isLocked ? (
-                      <div className="absolute inset-0 flex items-center justify-center rounded-[24px] bg-slate-950/30 p-4">
-                        <div className="max-w-md rounded-[24px] border border-white/10 bg-[#081321] p-6 text-center text-white shadow-xl">
-                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-accent">
-                            <Lock className="h-5 w-5" />
-                          </div>
-                          <h4 className="mt-4 font-display text-2xl">Unlock this level to access content and questions</h4>
-                          <p className="mt-3 text-sm leading-6 text-slate-300">
-                            You can preview the structure now. Unlocking this level reveals the concept notes, pause prompts, and practice questions.
-                          </p>
-                          <button className="mt-5 rounded-full bg-white px-5 py-3 text-sm font-medium text-ink">
-                            Unlock Level
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </details>
-            ))}
-          </div>
-        </div>
+        <LevelTopicLibrary
+          levelSlug={level.id}
+          lessons={lessons}
+          unlocked={unlocked}
+          completedTopicIds={completedTopicIds}
+          conceptPoints={conceptPoints}
+        />
       </section>
     </div>
   );
