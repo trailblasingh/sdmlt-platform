@@ -9,18 +9,18 @@ create table if not exists public.users (
 
 create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  level text not null,
-  payment_id text unique,
+  user_id uuid,
+  level text,
+  payment_id text,
   status text default 'paid',
-  created_at timestamptz default timezone('utc', now())
+  created_at timestamptz default now()
 );
 
-alter table public.purchases add column if not exists status text default 'paid';
+alter table public.purchases add column if not exists user_id uuid;
 alter table public.purchases add column if not exists level text;
 alter table public.purchases add column if not exists payment_id text;
-alter table public.purchases add column if not exists user_id uuid;
-alter table public.purchases add column if not exists created_at timestamptz default timezone('utc', now());
+alter table public.purchases add column if not exists status text default 'paid';
+alter table public.purchases add column if not exists created_at timestamptz default now();
 
 update public.purchases
 set status = 'paid'
@@ -29,35 +29,20 @@ where status is null;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'unique_user_level'
+    SELECT 1 FROM pg_constraint WHERE conname = 'unique_user_level'
   ) THEN
-    ALTER TABLE public.purchases
-    ADD CONSTRAINT unique_user_level UNIQUE (user_id, level);
+    ALTER TABLE public.purchases ADD CONSTRAINT unique_user_level UNIQUE (user_id, level);
   END IF;
-END $$;
+END$$;
 
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'purchases_payment_id_key'
+    SELECT 1 FROM pg_constraint WHERE conname = 'unique_payment_id'
   ) THEN
-    ALTER TABLE public.purchases
-    ADD CONSTRAINT purchases_payment_id_key UNIQUE (payment_id);
+    ALTER TABLE public.purchases ADD CONSTRAINT unique_payment_id UNIQUE (payment_id);
   END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'purchases_status_check'
-  ) THEN
-    ALTER TABLE public.purchases
-    ADD CONSTRAINT purchases_status_check CHECK (status in ('paid'));
-  END IF;
-END $$;
+END$$;
 
 create index if not exists idx_purchases_user_id on public.purchases(user_id);
 
@@ -139,9 +124,6 @@ create policy "purchases_select_own" on public.purchases for select using (auth.
 
 drop policy if exists "purchases_insert_own" on public.purchases;
 create policy "purchases_insert_own" on public.purchases for insert with check (auth.uid() = user_id);
-
-drop policy if exists "purchases_update_own" on public.purchases;
-create policy "purchases_update_own" on public.purchases for update using (auth.uid() = user_id);
 
 drop policy if exists "progress_select_own" on public.progress;
 create policy "progress_select_own" on public.progress for select using (auth.uid() = user_id);
