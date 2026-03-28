@@ -3,29 +3,53 @@ import { getStoredLevelSlug } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getLearningStateForUser(userId: string) {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  if (!supabase) {
+    if (!supabase) {
+      return {
+        purchases: [],
+        progress: [],
+        certificates: []
+      };
+    }
+
+    const [{ data: purchases, error: purchasesError }, { data: progress, error: progressError }, { data: certificates, error: certificatesError }] = await Promise.all([
+      supabase.from("purchases").select("level, payment_id, status, created_at").eq("user_id", userId).eq("status", "paid"),
+      supabase.from("progress").select("level, completed_topics, updated_at").eq("user_id", userId),
+      supabase.from("certificates").select("level, issued_at").eq("user_id", userId)
+    ]);
+
+    if (purchasesError || progressError || certificatesError) {
+      console.error("[member-data] Failed to fetch member state", {
+        userId,
+        purchasesError,
+        progressError,
+        certificatesError
+      });
+
+      return {
+        purchases: [],
+        progress: [],
+        certificates: []
+      };
+    }
+
+    console.log("[member-data] purchases fetched for user", userId, purchases ?? []);
+
+    return {
+      purchases: purchases ?? [],
+      progress: progress ?? [],
+      certificates: certificates ?? []
+    };
+  } catch (error) {
+    console.error("[member-data] Unexpected fetch failure", { userId, error });
     return {
       purchases: [],
       progress: [],
       certificates: []
     };
   }
-
-  const [{ data: purchases }, { data: progress }, { data: certificates }] = await Promise.all([
-    supabase.from("purchases").select("level, payment_id, status, created_at").eq("user_id", userId).eq("status", "paid"),
-    supabase.from("progress").select("level, completed_topics, updated_at").eq("user_id", userId),
-    supabase.from("certificates").select("level, issued_at").eq("user_id", userId)
-  ]);
-
-  console.log("[member-data] purchases fetched for user", userId, purchases ?? []);
-
-  return {
-    purchases: purchases ?? [],
-    progress: progress ?? [],
-    certificates: certificates ?? []
-  };
 }
 
 export function getCompletedTopicsForLevel(levelSlug: string, progressRows: { level: string; completed_topics: unknown }[]) {

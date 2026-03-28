@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insertError.message }, { status: 400 });
     }
 
-    console.log("[verify-payment] Purchase inserted successfully", insertedPurchase);
+    console.log("[verify-payment] purchase stored successfully", insertedPurchase);
     return NextResponse.json({ success: true, levelSlug: body.level_id });
   } catch (error) {
     console.error("[verify-payment] Unexpected error", error);
