@@ -1,26 +1,20 @@
 import { levels } from "@/lib/content";
 
-export const PAYMENT_LINKS = {
-  "problem-solving": "https://rzp.io/rzp/5gST3mf",
-  "decision-frameworks": "https://rzp.io/rzp/xasmIQSh",
-  "case-studies": "https://rzp.io/rzp/9IyoITl8"
-} as const;
-
 export const paidLevelConfig = {
   "problem-solving": {
     title: levels.find((level) => level.id === "problem-solving")?.title ?? "Level 2",
-    paymentLink: PAYMENT_LINKS["problem-solving"],
-    linkIds: ["5gST3mf"] as string[]
+    amount: 9900,
+    currency: "INR"
   },
   "decision-frameworks": {
     title: levels.find((level) => level.id === "decision-frameworks")?.title ?? "Level 3",
-    paymentLink: PAYMENT_LINKS["decision-frameworks"],
-    linkIds: ["xasmIQSh"] as string[]
+    amount: 14900,
+    currency: "INR"
   },
   "case-studies": {
     title: levels.find((level) => level.id === "case-studies")?.title ?? "Level 4",
-    paymentLink: PAYMENT_LINKS["case-studies"],
-    linkIds: ["9IyoITl8"] as string[]
+    amount: 19900,
+    currency: "INR"
   }
 } as const;
 
@@ -42,14 +36,4 @@ export function getStoredLevelSlug(level: string): LevelSlug {
   if (level === "level4") return "case-studies";
   if (isLevelSlug(level)) return level;
   throw new Error(`Unknown level identifier: ${level}`);
-}
-
-export function getPaymentLink(level: PaidLevelSlug) {
-  return PAYMENT_LINKS[level];
-}
-
-export function getPaidLevelSlugFromPaymentLinkId(linkId: string) {
-  return (
-    Object.entries(paidLevelConfig).find(([, config]) => config.linkIds.includes(linkId))?.[0] ?? null
-  ) as PaidLevelSlug | null;
 }

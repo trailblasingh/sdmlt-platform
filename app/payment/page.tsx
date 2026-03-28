@@ -51,8 +51,8 @@ export default async function PaymentPage() {
           <div className="mt-5 grid gap-4">
             {[
               "Login with Google to connect purchases and progress to your account.",
-              "Click unlock to open the correct Razorpay payment link with your email prefilled.",
-              "After payment, Razorpay should return you to /payment-success so the purchase can be recorded in Supabase.",
+              "Click unlock to open the Razorpay Checkout popup for the selected level.",
+              "After payment, the backend verifies the signature and records the purchase in Supabase.",
               "Finish every topic in a level to unlock its certificate page and print-ready certificate."
             ].map((item) => (
               <div key={item} className="rounded-[18px] border border-slate-200 px-4 py-4 text-sm leading-7 text-slate-700">
