@@ -62,20 +62,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Payment signature verification failed." }, { status: 400 });
     }
 
-    const { data: existingPayment, error: existingPaymentError } = await supabase
+    const { data: existingPaymentById, error: existingPaymentByIdError } = await supabase
       .from("purchases")
       .select("level, payment_id, status")
       .eq("payment_id", body.razorpay_payment_id)
       .maybeSingle();
 
-    if (existingPaymentError) {
-      console.error("[verify-payment] Failed to check existing payment", existingPaymentError);
-      return NextResponse.json({ error: existingPaymentError.message }, { status: 400 });
+    if (existingPaymentByIdError) {
+      console.error("[verify-payment] Failed to check existing payment by payment_id", existingPaymentByIdError);
+      return NextResponse.json({ error: existingPaymentByIdError.message }, { status: 400 });
     }
 
-    if (existingPayment) {
-      console.log("[verify-payment] Existing payment found", existingPayment);
-      return NextResponse.json({ success: true, levelSlug: existingPayment.level });
+    if (existingPaymentById) {
+      console.log("[verify-payment] Existing payment found by payment_id", existingPaymentById);
+      return NextResponse.json({ success: true, levelSlug: existingPaymentById.level });
+    }
+
+    const { data: existingPurchaseByLevel, error: existingPurchaseByLevelError } = await supabase
+      .from("purchases")
+      .select("level, payment_id, status")
+      .eq("user_id", user.id)
+      .eq("level", body.level_id)
+      .eq("status", "paid")
+      .maybeSingle();
+
+    if (existingPurchaseByLevelError) {
+      console.error("[verify-payment] Failed to check existing payment by level", existingPurchaseByLevelError);
+      return NextResponse.json({ error: existingPurchaseByLevelError.message }, { status: 400 });
+    }
+
+    if (existingPurchaseByLevel) {
+      console.log("[verify-payment] Existing paid purchase found for level", existingPurchaseByLevel);
+      return NextResponse.json({ success: true, levelSlug: existingPurchaseByLevel.level });
     }
 
     const { data: insertedPurchase, error: insertError } = await supabase

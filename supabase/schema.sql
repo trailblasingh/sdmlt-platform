@@ -9,13 +9,57 @@ create table if not exists public.users (
 
 create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.users(id) on delete cascade,
-  level text not null check (level in ('problem-solving', 'decision-frameworks', 'case-studies')),
-  payment_id text not null unique,
-  status text not null default 'paid' check (status in ('paid')),
-  created_at timestamptz not null default timezone('utc', now()),
-  unique(user_id, level)
+  user_id uuid not null,
+  level text not null,
+  payment_id text unique,
+  status text default 'paid',
+  created_at timestamptz default timezone('utc', now())
 );
+
+alter table public.purchases add column if not exists status text default 'paid';
+alter table public.purchases add column if not exists level text;
+alter table public.purchases add column if not exists payment_id text;
+alter table public.purchases add column if not exists user_id uuid;
+alter table public.purchases add column if not exists created_at timestamptz default timezone('utc', now());
+
+update public.purchases
+set status = 'paid'
+where status is null;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'unique_user_level'
+  ) THEN
+    ALTER TABLE public.purchases
+    ADD CONSTRAINT unique_user_level UNIQUE (user_id, level);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'purchases_payment_id_key'
+  ) THEN
+    ALTER TABLE public.purchases
+    ADD CONSTRAINT purchases_payment_id_key UNIQUE (payment_id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'purchases_status_check'
+  ) THEN
+    ALTER TABLE public.purchases
+    ADD CONSTRAINT purchases_status_check CHECK (status in ('paid'));
+  END IF;
+END $$;
+
+create index if not exists idx_purchases_user_id on public.purchases(user_id);
 
 create table if not exists public.progress (
   id uuid primary key default gen_random_uuid(),
@@ -34,10 +78,6 @@ create table if not exists public.certificates (
   issued_at timestamptz not null default timezone('utc', now()),
   unique(user_id, level)
 );
-
-alter table public.purchases add column if not exists status text not null default 'paid';
-alter table public.purchases add constraint purchases_status_check check (status in ('paid'));
-alter table public.purchases add constraint purchases_payment_id_key unique (payment_id);
 
 create or replace function public.handle_new_user()
 returns trigger
