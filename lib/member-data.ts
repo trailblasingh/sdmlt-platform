@@ -19,6 +19,8 @@ export async function getLearningStateForUser(userId: string) {
     supabase.from("certificates").select("level, issued_at").eq("user_id", userId)
   ]);
 
+  console.log("[member-data] purchases fetched for user", userId, purchases ?? []);
+
   return {
     purchases: purchases ?? [],
     progress: progress ?? [],
@@ -27,16 +29,25 @@ export async function getLearningStateForUser(userId: string) {
 }
 
 export function getCompletedTopicsForLevel(levelSlug: string, progressRows: { level: string; completed_topics: unknown }[]) {
-  const row = progressRows.find((item) => getStoredLevelSlug(item.level) === levelSlug);
+  const row = progressRows.find((item) => item.level === levelSlug || getStoredLevelSlug(item.level) === levelSlug);
   return Array.isArray(row?.completed_topics) ? (row.completed_topics as string[]) : [];
 }
 
-export function isLevelUnlocked(levelSlug: string, purchasedLevels: string[]) {
-  if (levelSlug === "foundations") {
+export function isLevelUnlocked(currentLevelSlug: string, purchasedLevels: string[]) {
+  if (currentLevelSlug === "foundations") {
     return true;
   }
 
-  return purchasedLevels.some((level) => getStoredLevelSlug(level) === levelSlug);
+  const unlocked = purchasedLevels.some((purchaseLevel) => {
+    console.log("[member-data] level slug comparison", {
+      purchaseLevel,
+      currentLevelSlug
+    });
+    return purchaseLevel === currentLevelSlug;
+  });
+
+  console.log("[member-data] unlock result", { currentLevelSlug, purchasedLevels, unlocked });
+  return unlocked;
 }
 
 export function getTotalTopicsForLevel(levelSlug: string) {

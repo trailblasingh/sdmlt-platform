@@ -93,31 +93,40 @@ export function UnlockLevelButton({ levelSlug, className, onUnlocked }: UnlockLe
           ondismiss: () => setLoading(false)
         },
         handler: async (response) => {
-          const verifyResponse = await fetch("/api/verify-payment", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              level_id: levelSlug,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature
-            })
-          });
+          try {
+            const verifyResponse = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                level_id: levelSlug,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
 
-          const verifyData = await verifyResponse.json();
+            const verifyData = await verifyResponse.json();
 
-          if (!verifyResponse.ok) {
-            setMessage(verifyData.error ?? "Payment verification failed.");
+            if (!verifyResponse.ok) {
+              setMessage(verifyData.error ?? "Payment verification failed.");
+              setLoading(false);
+              return;
+            }
+
+            if (verifyData.success) {
+              setMessage("Level unlocked successfully.");
+              onUnlocked?.();
+              await router.refresh();
+            } else {
+              setMessage("Payment verification failed.");
+            }
+          } catch (error) {
+            setMessage(error instanceof Error ? error.message : "Payment verification failed.");
+          } finally {
             setLoading(false);
-            return;
           }
-
-          setMessage("Level unlocked successfully.");
-          onUnlocked?.();
-          router.refresh();
-          setLoading(false);
         }
       });
 
