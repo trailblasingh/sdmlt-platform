@@ -9,7 +9,7 @@ import { BrandLogo } from "@/components/brand-logo";
 
 const nav = [
   { href: "/levels", label: "Levels" },
-  { href: "/case-study", label: "Cases" },
+  { href: "/cases", label: "Cases" },
   { href: "/login", label: "Login" }
 ];
 

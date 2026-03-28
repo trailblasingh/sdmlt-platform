@@ -13,7 +13,7 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-col gap-2 text-sm">
           <Link href="/levels">Levels</Link>
-          <Link href="/case-study">Case Study</Link>
+          <Link href="/cases">Case Study</Link>
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/payment">Payments & Certificates</Link>
         </div>

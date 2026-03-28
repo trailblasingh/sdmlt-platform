@@ -77,6 +77,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      cases: {
+        Row: {
+          id: string;
+          level: string;
+          case_name: string;
+          short_description: string | null;
+        };
+        Insert: {
+          id?: string;
+          level: string;
+          case_name: string;
+          short_description?: string | null;
+        };
+        Update: {
+          id?: string;
+          level?: string;
+          case_name?: string;
+          short_description?: string | null;
+        };
+        Relationships: [];
+      };
+      questions: {
+        Row: {
+          id: string;
+          level: string;
+          case_name: string;
+          prompt: string;
+          options: Json;
+          correct_index: number;
+          analysis: string | null;
+        };
+        Insert: {
+          id?: string;
+          level: string;
+          case_name: string;
+          prompt: string;
+          options?: Json;
+          correct_index: number;
+          analysis?: string | null;
+        };
+        Update: {
+          id?: string;
+          level?: string;
+          case_name?: string;
+          prompt?: string;
+          options?: Json;
+          correct_index?: number;
+          analysis?: string | null;
+        };
+        Relationships: [];
+      };
       progress: {
         Row: {
           id: string;

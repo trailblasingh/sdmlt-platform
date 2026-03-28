@@ -92,6 +92,138 @@ insert into public.topics (level, topic) values
   ('case-studies', 'Integrated Cases')
 on conflict (level, topic) do nothing;
 
+create table if not exists public.cases (
+  id uuid primary key default gen_random_uuid(),
+  level text not null,
+  case_name text not null,
+  short_description text
+);
+
+alter table public.cases add column if not exists level text;
+alter table public.cases add column if not exists case_name text;
+alter table public.cases add column if not exists short_description text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'cases_case_name_key'
+  ) THEN
+    ALTER TABLE public.cases ADD CONSTRAINT cases_case_name_key UNIQUE (case_name);
+  END IF;
+END$$;
+
+insert into public.cases (level, case_name, short_description) values
+  (
+    'case-studies',
+    'Eastern Europe Casket Works',
+    'A family-owned casket maker must decide whether to automate production in a declining market with aging labor, capital constraints, and irreversible investment risk.'
+  ),
+  (
+    'case-studies',
+    'AmeriGlow',
+    'A business with strong operating metrics must decide whether local efficiency is masking a deeper strategic weakness in capital allocation, inventory, and value creation.'
+  )
+on conflict (case_name) do update
+set level = excluded.level,
+    short_description = excluded.short_description;
+
+create table if not exists public.questions (
+  id uuid primary key default gen_random_uuid(),
+  level text not null,
+  case_name text not null,
+  prompt text not null,
+  options jsonb not null default '[]'::jsonb,
+  correct_index integer not null,
+  analysis text
+);
+
+alter table public.questions add column if not exists level text;
+alter table public.questions add column if not exists case_name text;
+alter table public.questions add column if not exists prompt text;
+alter table public.questions add column if not exists options jsonb not null default '[]'::jsonb;
+alter table public.questions add column if not exists correct_index integer;
+alter table public.questions add column if not exists analysis text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'questions_case_prompt_key'
+  ) THEN
+    ALTER TABLE public.questions ADD CONSTRAINT questions_case_prompt_key UNIQUE (case_name, prompt);
+  END IF;
+END$$;
+
+insert into public.questions (level, case_name, prompt, options, correct_index, analysis) values
+  (
+    'case-studies',
+    'Eastern Europe Casket Works',
+    'In the Eastern Europe Casket Works setup, which statement is the core decision rather than just a symptom?',
+    '["Veteran artisans are aging", "The market is steadily declining", "Whether to invest significantly in automation or maintain the status quo", "Production is still highly manual"]'::jsonb,
+    2,
+    'The real case decision is automation versus status quo. The other points are context and constraints that shape the decision, not the decision itself.'
+  ),
+  (
+    'case-studies',
+    'Eastern Europe Casket Works',
+    'Which item is most clearly a case constraint in this topic?',
+    '["Capital availability", "MECE thinking", "Expected value formula", "Cherry-picking"]'::jsonb,
+    0,
+    'Capital availability is a hard operating constraint in the case. The other options are tools or errors in reasoning, not business constraints.'
+  ),
+  (
+    'case-studies',
+    'Eastern Europe Casket Works',
+    'Which structure is most consistent with this framework''s MECE approach to the automation case?',
+    '["One long list mixing finance, people, technology, and market issues randomly", "Separate buckets for market conditions, financial impact, risk, and flexibility", "A structure based only on what the owner worries about most today", "A structure that repeats labor cost under every branch"]'::jsonb,
+    1,
+    'A strong case structure separates the problem into clean, non-overlapping buckets. Market conditions, economics, risk, and flexibility provide a disciplined lens for the decision.'
+  ),
+  (
+    'case-studies',
+    'Eastern Europe Casket Works',
+    'Which statement best reflects bottleneck analysis in a business case?',
+    '["Treat every issue as equally limiting", "Identify the specific constraint that most limits performance before optimizing around it", "Assume the first visible problem is the real bottleneck", "Start with implementation before diagnosis"]'::jsonb,
+    1,
+    'Bottleneck analysis looks for the limiting factor that most constrains the outcome. That is the highest-leverage place to focus the case.'
+  ),
+  (
+    'case-studies',
+    'Eastern Europe Casket Works',
+    'Why does this framework conclude that delaying automation was the strongest decision for Eastern Europe Casket Works?',
+    '["Because automation never creates value", "Because preserving flexibility had higher value under volatility and irreversibility", "Because labor costs were already irrelevant", "Because competitors had stopped investing"]'::jsonb,
+    1,
+    'The case shows the value of optionality under uncertainty. Delaying protected the business from locking into an irreversible investment before the environment became clearer.'
+  ),
+  (
+    'case-studies',
+    'Eastern Europe Casket Works',
+    'Which change would most likely reverse the decision to delay?',
+    '["Demand remains unstable and labor stays cheap", "The cost of automation falls and market demand becomes stable and predictable", "Management becomes impatient with ambiguity", "The company focuses only on DCF without flexibility"]'::jsonb,
+    1,
+    'If uncertainty falls and automation economics improve, the value of waiting drops. That is the kind of condition that can legitimately change the recommendation.'
+  ),
+  (
+    'case-studies',
+    'AmeriGlow',
+    'What is the central warning from the AmeriGlow case?',
+    '["Operational efficiency should always dominate strategy", "A single optimized metric can hide broader value destruction", "Inventory should always be maximized to avoid stockouts", "Demand shifts matter less than procurement scale"]'::jsonb,
+    1,
+    'AmeriGlow warns against mistaking local efficiency for strategic health. A business can optimize one metric while quietly weakening its overall economics and flexibility.'
+  ),
+  (
+    'case-studies',
+    'AmeriGlow',
+    'When using estimation logic or a risk-return cutoff in this case, what matters most?',
+    '["Using one precise number without showing assumptions", "Linking the estimate to constraints, scenarios, and decision consequences", "Avoiding all qualitative judgment", "Treating market size as separate from the decision itself"]'::jsonb,
+    1,
+    'The point of estimation in a case is not just precision. It is to clarify assumptions, compare scenarios, and improve the decision itself.'
+  )
+on conflict (case_name, prompt) do update
+set level = excluded.level,
+    options = excluded.options,
+    correct_index = excluded.correct_index,
+    analysis = excluded.analysis;
+
 create table if not exists public.progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
