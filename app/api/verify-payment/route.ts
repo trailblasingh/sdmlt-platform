@@ -105,25 +105,31 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabaseAdmin
       .from("purchases")
-      .insert([
+      .upsert(
+        [
+          {
+            user_id: user.id,
+            level: levelSlug,
+            payment_id: razorpay_payment_id,
+            status: "paid",
+          },
+        ],
         {
-          user_id: user.id,
-          level: levelSlug,
-          payment_id: razorpay_payment_id,
-          status: "paid",
-        },
-      ])
+          onConflict: "user_id,level",
+        }
+      )
       .select();
 
     if (error) {
-      console.error("INSERT ERROR FULL:", JSON.stringify(error, null, 2));
+      console.error("UPSERT ERROR:", JSON.stringify(error, null, 2));
+
       return Response.json(
         { success: false, error: error.message },
         { status: 500 }
       );
     }
 
-    console.log("INSERT SUCCESS:", data);
+    console.log("UPSERT SUCCESS:", data);
     return Response.json({ success: true });
   } catch (error) {
     console.error("[verify-payment] Unexpected error", error);
