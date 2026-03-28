@@ -32,34 +32,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Topic is required." }, { status: 400 });
   }
 
-  const { data: existing, error: readError } = await supabase
+  const { data, error } = await supabase
     .from("progress")
-    .select("id, completed_topics")
-    .eq("user_id", user.id)
-    .eq("level", level)
-    .maybeSingle();
-
-  if (readError) {
-    return NextResponse.json({ error: readError.message }, { status: 400 });
-  }
-
-  const completedTopics = Array.isArray(existing?.completed_topics)
-    ? [...new Set([...(existing.completed_topics as string[]), topic])]
-    : [topic];
-
-  const { error } = await supabase.from("progress").upsert(
-    {
-      id: existing?.id,
-      user_id: user.id,
-      level,
-      completed_topics: completedTopics
-    },
-    { onConflict: "user_id,level" }
-  );
+    .upsert(
+      {
+        user_id: user.id,
+        level,
+        topic,
+        completed: true
+      },
+      { onConflict: "user_id,level,topic" }
+    )
+    .select("level, topic, completed");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ success: true, completedTopics });
+  return NextResponse.json({ success: true, progress: data ?? [] });
 }

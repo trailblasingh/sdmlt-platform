@@ -4,7 +4,7 @@ import { ArrowUpRight, Award, CheckCircle2, Lock } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { getCurrentUser } from "@/lib/auth";
 import { levels } from "@/lib/content";
-import { getCompletedTopicsForLevel, getCompletionRatio, getLearningStateForUser, isLevelUnlocked } from "@/lib/member-data";
+import { getCompletedTopicsForLevel, getCompletionRatio, getLearningStateForUser, getTotalTopicsForLevel, isLevelUnlocked } from "@/lib/member-data";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     { label: "Certificates earned", value: String(learningState.certificates.length) },
     {
       label: "Topics completed",
-      value: String(learningState.progress.reduce((sum, row) => sum + (Array.isArray(row.completed_topics) ? row.completed_topics.length : 0), 0))
+      value: String(learningState.progress.length)
     },
     { label: "Current user", value: user.email ?? "Member" }
   ];
@@ -63,7 +63,8 @@ export default async function DashboardPage() {
           <div className="mt-8 space-y-4">
             {levels.map((level) => {
               const completedTopics = getCompletedTopicsForLevel(level.id, learningState.progress);
-              const completionRatio = getCompletionRatio(level.id, completedTopics);
+              const totalTopics = getTotalTopicsForLevel(level.id, learningState.topics);
+              const completionRatio = getCompletionRatio(level.id, completedTopics, learningState.topics);
               const unlocked = isLevelUnlocked(level.id, purchasedLevels);
               const hasCertificate = earnedCertificates.has(level.id);
 
@@ -84,7 +85,7 @@ export default async function DashboardPage() {
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
                     <div className="flex items-center gap-3">
                       {!unlocked ? <Lock className="h-4 w-4" /> : completionRatio === 1 ? <CheckCircle2 className="h-4 w-4" /> : <Award className="h-4 w-4" />}
-                      <span>{!unlocked ? "Unlock required" : `${completedTopics.length}/${level.topics.length} topics completed`}</span>
+                      <span>{!unlocked ? "Unlock required" : `${completedTopics.length}/${totalTopics} topics completed`}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       {unlocked ? (
@@ -92,9 +93,9 @@ export default async function DashboardPage() {
                           Continue learning
                         </Link>
                       ) : null}
-                      {completionRatio === 1 ? (
+                      {hasCertificate ? (
                         <Link href={`/certificate/${level.id}`} className="font-medium text-slate-950">
-                          {hasCertificate ? "View certificate" : "Generate certificate"}
+                          View certificate
                         </Link>
                       ) : null}
                     </div>

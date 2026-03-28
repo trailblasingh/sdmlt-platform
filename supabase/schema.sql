@@ -55,23 +55,88 @@ END$$;
 
 create index if not exists idx_purchases_user_id on public.purchases(user_id);
 
+create table if not exists public.topics (
+  id uuid primary key default gen_random_uuid(),
+  level text not null,
+  topic text not null
+);
+
+alter table public.topics add column if not exists level text;
+alter table public.topics add column if not exists topic text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'topics_level_topic_key'
+  ) THEN
+    ALTER TABLE public.topics ADD CONSTRAINT topics_level_topic_key UNIQUE (level, topic);
+  END IF;
+END$$;
+
+insert into public.topics (level, topic) values
+  ('foundations', 'Decision Sources'),
+  ('foundations', 'Logic Types'),
+  ('foundations', 'Statements & Assumptions'),
+  ('foundations', 'Cognitive Biases'),
+  ('problem-solving', 'Problem Framing (GAI)'),
+  ('problem-solving', 'Structured Solving'),
+  ('problem-solving', 'Data Interpretation'),
+  ('problem-solving', 'Reasoning Patterns'),
+  ('decision-frameworks', 'Decision Trees'),
+  ('decision-frameworks', 'Expected Value'),
+  ('decision-frameworks', 'Risk (Known vs Unknown)'),
+  ('decision-frameworks', 'Personal Finance Logic'),
+  ('case-studies', 'Case Orientation'),
+  ('case-studies', 'Case Structuring'),
+  ('case-studies', 'Data & Insight'),
+  ('case-studies', 'Integrated Cases')
+on conflict (level, topic) do nothing;
+
 create table if not exists public.progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
-  level text not null check (level in ('foundations', 'problem-solving', 'decision-frameworks', 'case-studies')),
-  completed_topics jsonb not null default '[]'::jsonb,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now()),
-  unique(user_id, level)
+  level text not null,
+  topic text not null,
+  completed boolean default true,
+  created_at timestamptz default now()
 );
+
+alter table public.progress add column if not exists user_id uuid;
+alter table public.progress add column if not exists level text;
+alter table public.progress add column if not exists topic text;
+alter table public.progress add column if not exists completed boolean default true;
+alter table public.progress add column if not exists created_at timestamptz default now();
+
+update public.progress
+set completed = true
+where completed is null;
+
+alter table public.progress drop constraint if exists progress_level_check;
+alter table public.progress drop constraint if exists progress_user_id_level_key;
+alter table public.progress drop constraint if exists unique_progress_user_level_topic;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'unique_progress_user_level_topic'
+  ) THEN
+    ALTER TABLE public.progress ADD CONSTRAINT unique_progress_user_level_topic UNIQUE (user_id, level, topic);
+  END IF;
+END$$;
 
 create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
-  level text not null check (level in ('foundations', 'problem-solving', 'decision-frameworks', 'case-studies')),
-  issued_at timestamptz not null default timezone('utc', now()),
+  level text not null,
+  issued_at timestamptz default now(),
   unique(user_id, level)
 );
+
+alter table public.certificates add column if not exists user_id uuid;
+alter table public.certificates add column if not exists level text;
+alter table public.certificates add column if not exists issued_at timestamptz default now();
+
+alter table public.certificates drop constraint if exists certificates_level_check;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -99,20 +164,43 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
+create or replace function public.check_and_issue_certificate(p_user uuid, p_level text)
+returns void as $$
+declare
+  total_topics int;
+  completed_topics int;
 begin
-  new.updated_at = timezone('utc', now());
+  select count(*) into total_topics
+  from public.topics
+  where level = p_level;
+
+  select count(*) into completed_topics
+  from public.progress
+  where user_id = p_user
+    and level = p_level
+    and completed = true;
+
+  if total_topics > 0 and total_topics = completed_topics then
+    insert into public.certificates (user_id, level)
+    values (p_user, p_level)
+    on conflict (user_id, level) do nothing;
+  end if;
+end;
+$$ language plpgsql;
+
+create or replace function public.trigger_certificate()
+returns trigger as $$
+begin
+  perform public.check_and_issue_certificate(new.user_id, new.level);
   return new;
 end;
-$$;
+$$ language plpgsql;
 
-drop trigger if exists progress_set_updated_at on public.progress;
-create trigger progress_set_updated_at
-  before update on public.progress
-  for each row execute procedure public.set_updated_at();
+drop trigger if exists progress_certificate_trigger on public.progress;
+create trigger progress_certificate_trigger
+after insert or update on public.progress
+for each row
+execute function public.trigger_certificate();
 
 alter table public.users enable row level security;
 alter table public.purchases enable row level security;

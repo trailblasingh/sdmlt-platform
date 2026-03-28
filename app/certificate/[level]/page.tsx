@@ -3,8 +3,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { PrintCertificateButton } from "@/components/print-certificate-button";
 import { getCurrentUser } from "@/lib/auth";
 import { levels } from "@/lib/content";
-import { getCompletedTopicsForLevel, getLearningStateForUser, isLevelUnlocked } from "@/lib/member-data";
-import { createClient } from "@/lib/supabase/server";
+import { getCompletedTopicsForLevel, getLearningStateForUser, getTotalTopicsForLevel, isLevelUnlocked } from "@/lib/member-data";
 
 export function generateStaticParams() {
   return levels.map((level) => ({ level: level.id }));
@@ -27,28 +26,14 @@ export default async function CertificatePage({ params }: { params: Promise<{ le
   const purchasedLevels = learningState.purchases.map((purchase) => purchase.level);
   const unlocked = isLevelUnlocked(levelSlug, purchasedLevels);
   const completedTopics = getCompletedTopicsForLevel(levelSlug, learningState.progress);
+  const totalTopics = getTotalTopicsForLevel(levelSlug, learningState.topics);
+  const existingCertificate = learningState.certificates.find((certificate) => certificate.level === levelSlug);
 
-  if (!unlocked || completedTopics.length < level.topics.length) {
+  if (!unlocked || completedTopics.length < totalTopics || !existingCertificate) {
     redirect("/dashboard");
   }
 
-  const existingCertificate = learningState.certificates.find((certificate) => certificate.level === levelSlug);
-
-  if (!existingCertificate) {
-    const supabase = await createClient();
-
-    if (supabase) {
-      await supabase.from("certificates").upsert(
-        {
-          user_id: user.id,
-          level: levelSlug
-        },
-        { onConflict: "user_id,level" }
-      );
-    }
-  }
-
-  const issuedAt = existingCertificate?.issued_at ?? new Date().toISOString();
+  const issuedAt = existingCertificate.issued_at;
   const learnerName = (user.user_metadata.full_name as string | undefined) ?? (user.user_metadata.name as string | undefined) ?? user.email ?? "SDMLT Learner";
 
   return (

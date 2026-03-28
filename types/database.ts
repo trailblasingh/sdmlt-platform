@@ -59,30 +59,48 @@ export type Database = {
           }
         ];
       };
+      topics: {
+        Row: {
+          id: string;
+          level: string;
+          topic: string;
+        };
+        Insert: {
+          id?: string;
+          level: string;
+          topic: string;
+        };
+        Update: {
+          id?: string;
+          level?: string;
+          topic?: string;
+        };
+        Relationships: [];
+      };
       progress: {
         Row: {
           id: string;
           user_id: string;
           level: string;
-          completed_topics: Json;
+          topic: string;
+          completed: boolean;
           created_at: string;
-          updated_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
           level: string;
-          completed_topics?: Json;
+          topic: string;
+          completed?: boolean;
           created_at?: string;
-          updated_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
           level?: string;
-          completed_topics?: Json;
+          topic?: string;
+          completed?: boolean;
           created_at?: string;
-          updated_at?: string;
         };
         Relationships: [
           {
