@@ -22,6 +22,15 @@ alter table public.purchases add column if not exists payment_id text;
 alter table public.purchases add column if not exists status text default 'paid';
 alter table public.purchases add column if not exists created_at timestamptz default now();
 
+alter table public.purchases drop constraint if exists purchases_level_check;
+alter table public.purchases
+add constraint purchases_level_check
+check (level in (
+  'problem-solving',
+  'decision-frameworks',
+  'case-studies'
+));
+
 update public.purchases
 set status = 'paid'
 where status is null;
