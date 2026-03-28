@@ -1,26 +1,26 @@
 import crypto from "node:crypto";
-import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { ensureUserProfile } from "@/lib/auth";
-import { getRequiredEnv, getSupabaseAdminEnv } from "@/lib/env";
+import { getRequiredEnv } from "@/lib/env";
 import { isPaidLevelSlug } from "@/lib/payments";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
-function getAdminClient() {
-  const adminEnv = getSupabaseAdminEnv();
-
-  if (!adminEnv) {
-    throw new Error("Supabase admin is not configured.");
-  }
-
-  return createSupabaseAdminClient<Database>(
-    adminEnv.url,
-    adminEnv.serviceRoleKey
-  );
-}
-
 export async function POST(request: Request) {
   try {
+    console.log("ENV CHECK:", {
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("SERVICE ROLE KEY MISSING");
+    }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      throw new Error("SUPABASE URL MISSING");
+    }
+
     const supabase = await createServerClient();
 
     if (!supabase) {
@@ -28,13 +28,29 @@ export async function POST(request: Request) {
       return Response.json({ success: false, error: "Supabase auth is not configured." }, { status: 503 });
     }
 
+    const supabaseAdmin = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
     const {
-      data: { user }
+      data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
+    if (userError) {
+      console.error("USER FETCH ERROR:", userError);
+    }
+
     if (!user) {
-      console.error("[verify-payment] User not authenticated");
-      return Response.json({ success: false, error: "User not authenticated" }, { status: 401 });
+      console.error("NO USER FOUND");
+      return Response.json({ success: false }, { status: 401 });
     }
 
     await ensureUserProfile(user);
@@ -76,39 +92,38 @@ export async function POST(request: Request) {
         expectedSignature,
         receivedSignature: razorpay_signature,
         userId: user.id,
-        levelSlug
+        levelSlug,
       });
       return Response.json({ success: false, error: "Payment signature verification failed." }, { status: 400 });
     }
 
-    console.log("INSERT DATA:", {
+    console.log("FINAL INSERT ATTEMPT:", {
       user_id: user.id,
       level: levelSlug,
-      payment_id: razorpay_payment_id
+      payment_id: razorpay_payment_id,
     });
 
-    const adminClient = getAdminClient();
-
-    const { error: insertError } = await adminClient
+    const { data, error } = await supabaseAdmin
       .from("purchases")
       .insert([
         {
           user_id: user.id,
           level: levelSlug,
           payment_id: razorpay_payment_id,
-          status: "paid"
-        }
-      ]);
+          status: "paid",
+        },
+      ])
+      .select();
 
-    if (insertError) {
-      console.error("INSERT FAILED:", insertError);
+    if (error) {
+      console.error("INSERT ERROR FULL:", JSON.stringify(error, null, 2));
       return Response.json(
-        { success: false, error: insertError.message },
+        { success: false, error: error.message },
         { status: 500 }
       );
     }
 
-    console.log("[verify-payment] purchase stored successfully");
+    console.log("INSERT SUCCESS:", data);
     return Response.json({ success: true });
   } catch (error) {
     console.error("[verify-payment] Unexpected error", error);
