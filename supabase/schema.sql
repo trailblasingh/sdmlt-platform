@@ -261,14 +261,45 @@ create table if not exists public.certificates (
   user_id uuid not null references public.users(id) on delete cascade,
   level text not null,
   issued_at timestamptz default now(),
+  certificate_id text,
   unique(user_id, level)
 );
 
 alter table public.certificates add column if not exists user_id uuid;
 alter table public.certificates add column if not exists level text;
 alter table public.certificates add column if not exists issued_at timestamptz default now();
+alter table public.certificates add column if not exists certificate_id text;
 
 alter table public.certificates drop constraint if exists certificates_level_check;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'unique_certificate_id'
+  ) THEN
+    ALTER TABLE public.certificates ADD CONSTRAINT unique_certificate_id UNIQUE (certificate_id);
+  END IF;
+END$$;
+
+create or replace function public.generate_certificate_id(p_level text)
+returns text as $$
+declare
+  level_code text;
+  random_code text;
+begin
+  level_code := case p_level
+    when 'foundations' then 'L1'
+    when 'problem-solving' then 'L2'
+    when 'decision-frameworks' then 'L3'
+    when 'case-studies' then 'L4'
+    else 'LX'
+  end;
+
+  random_code := upper(substring(md5(random()::text || clock_timestamp()::text) from 1 for 5));
+
+  return 'SDMLT-' || level_code || '-' || extract(year from now())::text || '-' || random_code;
+end;
+$$ language plpgsql;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -313,8 +344,8 @@ begin
     and completed = true;
 
   if total_topics > 0 and total_topics = completed_topics then
-    insert into public.certificates (user_id, level)
-    values (p_user, p_level)
+    insert into public.certificates (user_id, level, certificate_id)
+    values (p_user, p_level, public.generate_certificate_id(p_level))
     on conflict (user_id, level) do nothing;
   end if;
 end;

@@ -19,6 +19,7 @@ type ProgressRow = {
 type CertificateRow = {
   level: string;
   issued_at: string;
+  certificate_id: string | null;
 };
 
 type TopicRow = {
@@ -47,7 +48,7 @@ export async function getLearningStateForUser(userId: string) {
     ] = await Promise.all([
       supabase.from("purchases").select("level, payment_id, status, created_at").eq("user_id", userId).eq("status", "paid"),
       supabase.from("progress").select("level, topic, completed, created_at").eq("user_id", userId).eq("completed", true),
-      supabase.from("certificates").select("level, issued_at").eq("user_id", userId),
+      supabase.from("certificates").select("level, issued_at, certificate_id").eq("user_id", userId),
       supabase.from("topics").select("level, topic")
     ]);
 

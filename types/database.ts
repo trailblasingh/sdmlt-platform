@@ -169,18 +169,21 @@ export type Database = {
           user_id: string;
           level: string;
           issued_at: string;
+          certificate_id: string | null;
         };
         Insert: {
           id?: string;
           user_id: string;
           level: string;
           issued_at?: string;
+          certificate_id?: string | null;
         };
         Update: {
           id?: string;
           user_id?: string;
           level?: string;
           issued_at?: string;
+          certificate_id?: string | null;
         };
         Relationships: [
           {
