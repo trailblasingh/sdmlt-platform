@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureUserProfile } from "@/lib/auth";
+import { isLevelSlug } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -19,10 +20,16 @@ export async function POST(request: Request) {
 
   await ensureUserProfile(user);
 
-  const { level, topicId } = (await request.json()) as { level?: string; topicId?: string };
+  const { level, topic } = (await request.json()) as { level?: string; topic?: string };
 
-  if (!level || !topicId) {
-    return NextResponse.json({ error: "Level and topic are required." }, { status: 400 });
+  console.log("Progress payload:", { level, topic });
+
+  if (!level || !isLevelSlug(level)) {
+    return NextResponse.json({ error: "A valid level slug is required." }, { status: 400 });
+  }
+
+  if (!topic) {
+    return NextResponse.json({ error: "Topic is required." }, { status: 400 });
   }
 
   const { data: existing, error: readError } = await supabase
@@ -37,8 +44,8 @@ export async function POST(request: Request) {
   }
 
   const completedTopics = Array.isArray(existing?.completed_topics)
-    ? [...new Set([...(existing.completed_topics as string[]), topicId])]
-    : [topicId];
+    ? [...new Set([...(existing.completed_topics as string[]), topic])]
+    : [topic];
 
   const { error } = await supabase.from("progress").upsert(
     {

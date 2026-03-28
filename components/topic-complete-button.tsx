@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,6 +18,8 @@ export function TopicCompleteButton({ levelSlug, topicId, completed, onCompleted
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const pathLevelSlug = pathname.split("/")[2] ?? levelSlug;
+
   async function handleComplete() {
     if (completed) {
       return;
@@ -31,13 +33,18 @@ export function TopicCompleteButton({ levelSlug, topicId, completed, onCompleted
     setLoading(true);
     setMessage(null);
 
+    const level = pathLevelSlug || levelSlug;
+    const topic = topicId;
+
+    console.log("Progress payload:", { level, topic });
+
     try {
       const response = await fetch("/api/progress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ level: levelSlug, topicId })
+        body: JSON.stringify({ level, topic })
       });
 
       const data = await response.json();
