@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
-import { getCaseDetail, getCasesForLevel } from "@/lib/cases";
+import { getCaseDetail } from "@/lib/cases";
 
-export async function generateStaticParams() {
-  const cases = await getCasesForLevel("case-studies");
-  return cases.map((item) => ({ caseName: encodeURIComponent(item.case_name) }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ caseName: string }> }) {
   const { caseName } = await params;
